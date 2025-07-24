@@ -4,6 +4,8 @@ import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import numpy, matplotlib
+from sklearn.preprocessing import StandardScaler
+
 
 # Download historical stock data for compan(y/ies)
 def download_stock_data(ticker):
@@ -12,9 +14,9 @@ def download_stock_data(ticker):
     return df
 
 def predictor_variables(df):
-    df['Returns_1d'] = df['Close'].pct_change(1)
+    df['Returns_2d'] = df['Close'].pct_change(2)
     df['MA_5d'] = df['Close'].rolling(window=5).mean()
-    df['Volume_1d'] = df['Volume'].pct_change(1)
+    # df['Volume_1d'] = df['Volume'].pct_change(1)
     df['Volume_vs_Avg'] = df['Volume'] / df['Volume'].rolling(window=5).mean()
     return df.dropna()
 
@@ -23,7 +25,7 @@ def prediction_target(df):
     return df.dropna()
 
 def train_test(df, test_size=0.2):
-    X = df[['Returns_1d', 'MA_5d', 'Volume_1d', 'Volume_vs_Avg']]
+    X = df[['Returns_2d', 'MA_5d', 'Volume_vs_Avg']]
     y = df['Target']    
     X_train, X_test, y_train, y_test = train_test_split(
     X, y,
@@ -59,16 +61,25 @@ def plot_predictions(y_test, test_predictions):
     plt.show()
 
 def evaluate_baseline(y_test, X_test):
-    naive_preds = X_test['MA_5d']  # or use 'Close' from original df
+    naive_preds = stock_data.loc[y_test.index, 'Close']
     naive_mae = sklearn.metrics.mean_absolute_error(y_test, naive_preds)
     print(f'Naive MAE (Predicting Moving Average): {naive_mae}')
     return naive_mae
+
+def scale_features(df):
+    features = ['Returns_2d', 'MA_5d', 'Volume_vs_Avg']
+    scaler = StandardScaler()
+    df[features] = scaler.fit_transform(df[features])
+    return df, scaler
 
 if __name__ == "__main__":
     ticker = 'AAPL'  # Example ticker
     stock_data = download_stock_data(ticker)
     stock_data = predictor_variables(stock_data)
     stock_data = prediction_target(stock_data)
+
+    stock_data, scaler = scale_features(stock_data)
+
     X_train, X_test, y_train, y_test = train_test(stock_data)
     model, train_predictions, test_predictions, y_train, y_test = linear_regression(X_train, y_train, X_test, y_test)
     mse, mae = evaluate_model(y_test, test_predictions)
