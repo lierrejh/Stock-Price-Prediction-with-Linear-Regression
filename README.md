@@ -1,4 +1,4 @@
-s# Stock Return Prediction with Linear Regression
+# Stock Return Prediction with Linear Regression
 
 This project uses linear regression to predict next-day returns for a given stock using engineered features derived from historical prices and volume data. The workflow explores different feature combinations and evaluation techniques to identify the most predictive input set for the linear model.
 
