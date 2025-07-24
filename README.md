@@ -1,86 +1,83 @@
-# 📈 Stock Price Prediction with Linear Regression
+s# Stock Return Prediction with Linear Regression
 
-This project applies **linear regression** to forecast the **next-day closing price** of a stock using engineered features such as lagged returns, moving averages, and volume-based indicators.
-
----
-
-## 🧠 Project Goals
-
-- Use regression techniques to model financial time-series data
-- Apply feature engineering for predictive signals
-- Evaluate predictions using industry-standard error metrics
-- Compare machine learning model performance to a naive baseline
-- Interpret model coefficients to understand feature importance
+This project uses linear regression to predict next-day returns for a given stock using engineered features derived from historical prices and volume data. The workflow explores different feature combinations and evaluation techniques to identify the most predictive input set for the linear model.
 
 ---
 
-## ⚙️ Tools & Libraries
+## 📌 Objective
 
-- `yfinance` — stock data fetching
-- `pandas`, `numpy` — data manipulation
-- `scikit-learn` — regression, evaluation, and scaling
-- `matplotlib` — plotting results
+Predict next-day returns using only linear models and evaluate them against a naive baseline. Optimise accuracy using feature engineering, standardisation, and rolling-window validation.
 
 ---
 
-## 📊 Features Used
+## 🔧 Process Overview
 
-Final model used **three key features**:
+### 1. Data Acquisition
 
-| Feature           | Description                                        |
-|-------------------|----------------------------------------------------|
-| `Returns_2d`       | Daily return from two days ago                    |
-| `MA_5d`            | 5-day simple moving average of the closing price |
-| `Volume_vs_Avg`    | Ratio of today's volume to its 5-day rolling average |
+* Stock data is fetched using `yfinance`.
+* Focuses on daily closing prices and trading volumes.
 
----
+### 2. Feature Engineering
 
-## 🧪 Methodology
+Includes:
 
-1. **Download 1-year of daily price & volume data** using `yfinance`
-2. **Engineer predictive features** including returns and volume ratios
-3. **Create target** as next-day closing price
-4. **Split data** into training and test sets (no shuffling)
-5. **Standardise features** using `StandardScaler`
-6. **Train Linear Regression model**
-7. **Evaluate using MAE, MSE**, and compare to a naive baseline
-8. **Visualise actual vs predicted prices**
+* Lagged returns (`Returns_1d`, `Returns_2d`, `Returns_5d`)
+* Moving averages (`MA_5d`, `MA_10d`)
+* Price-to-average ratios (`Close_to_MA5`, `MA_ratio`)
+* Volume indicators (`LogVolume`, `Volume_vs_Avg`, `RollingVol_5d`)
+* Interaction terms (`Returns_1d * Close_to_MA5`, `Returns_2d * MA_10d`)
 
----
+### 3. Target Variable
 
-## 📈 Results & Findings
+* Next-day return: `pct_change().shift(-1)` on closing prices.
 
-### 📌 Final Linear Regression Model:
-- Features: `[Returns_2d, MA_5d, Volume_vs_Avg]`
-- Coefficients: `[4.54, 15.03, -0.96]`
+### 4. Data Scaling
 
-### 📊 Performance:
-| Metric                          | Value     |
-|---------------------------------|-----------|
-| **Mean Absolute Error (MAE)**   | `2.33`    |
-| **Mean Squared Error (MSE)**    | `7.97`    |
-| **Naive MAE (5-day MA)**        | `1.79`    |
-
-### ✅ Observations:
-- **Moving average (`MA_5d`)** was the most influential feature
-- **High relative volume** (`Volume_vs_Avg`) often preceded **price drops**, acting as a contrarian signal
-- **Returns_2d** showed weak but consistent predictive power
-- **Linear Regression was not able to outperform a simple 5-day MA baseline**
+* Standardised all features using `StandardScaler`.
+* This significantly improves model convergence and stabilises predictions.
 
 ---
 
-## 🧠 Key Takeaways
+## 🧪 Model Evaluation
 
-- Linear models are easy to interpret but **struggle to outperform naive baselines** in stock price prediction
-- **Feature selection matters** — removing noisy variables improved generalisation
-- Even simple baselines (like a 5-day MA) can **outperform ML models** unless richer features or more complex models are used
-- Standardisation improves stability and interpretability of coefficients
+### Train-Test Split
+
+* Initially used `train_test_split()` (80/20, no shuffle).
+* Result: Higher MAE and overly optimistic in-sample fit.
+
+### Rolling Window Cross-Validation ✅
+
+* Uses a sliding window of 60 days training, 1 day testing.
+* Repeats over the entire dataset.
+* **This method proved far more realistic and robust** for time-series prediction.
+
+### Baseline Comparison
+
+* Naive baseline predicts return(t) = return(t-1).
+* MAE of naive baseline was \~0.69 (AAPL), while best linear model achieved \~0.015 — a **46x improvement**.
+
+### Model Behaviour
+
+* Predictions mostly centre around 0% (mean return), with subtle adjustments during high volatility.
+* Linear models naturally dampen extreme predictions.
+* Best performance came from subtle signals rather than large return swings.
 
 ---
 
-## 🚀 Future Work
+## ✅ Best Observed Result (AAPL)
 
-- Try **Ridge Regression** to regularise coefficients
-- Use **Random Forests** or **XGBoost** to capture non-linear relationships
-- Predict **returns instead of price** for better model stationarity
-- Integrate a **trading strategy** and **backtest performance**
+* **Feature Set:** `['MA_10d', 'LogVolume', 'Volume_vs_Avg']`
+* **Rolling Window MAE:** `0.01492`
+* **Baseline MAE:** `0.69331`
+
+---
+
+## 📊 Lessons Learned
+
+* Train/test splits are not ideal for time series.
+* Rolling-window evaluation gives realistic out-of-sample errors.
+* Simple features like volume and moving average ratios outperform most lagged return terms.
+* Feature standardisation is essential for linear models.
+* Linear regression is conservative — captures signal, but rarely predicts extremes.
+* Adding interaction terms improves model expressiveness without breaking linear constraints.
+
